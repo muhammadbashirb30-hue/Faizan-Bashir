@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import type { AIContent, Event, GroundingSource, AITrendReport } from '../types';
+import type { AIContent, Event, GroundingSource, AITrendReport, HotTopic, KeywordStrategy } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -71,6 +71,102 @@ const trendReportResponseSchema = {
         }
     },
     required: ['ideas', 'audienceTip']
+};
+
+const hotTopicsResponseSchema = {
+    type: Type.ARRAY,
+    description: "A list of 5 globally trending topics for visual content.",
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        topic: {
+          type: Type.STRING,
+          description: "The name of the trending topic."
+        },
+        reason: {
+          type: Type.STRING,
+          description: "A brief, 1-2 sentence explanation of why this topic is currently trending."
+        }
+      },
+      required: ['topic', 'reason']
+    }
+};
+
+const keywordStrategyResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        primaryKeywords: {
+            type: Type.ARRAY,
+            description: "A list of 5-7 core, high-volume keywords directly related to the topic.",
+            items: { type: Type.STRING }
+        },
+        longTailKeywords: {
+            type: Type.ARRAY,
+            description: "A list of 5-7 more specific, multi-word phrases that target niche audiences.",
+            items: { type: Type.STRING }
+        },
+        relatedConcepts: {
+            type: Type.ARRAY,
+            description: "A list of 5-7 conceptually related terms or LSI keywords that add context.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ['primaryKeywords', 'longTailKeywords', 'relatedConcepts']
+};
+
+export const getGlobalHotTopics = async (): Promise<HotTopic[]> => {
+    const prompt = `As a stock content strategist, identify 5 globally trending topics for visual content (photos, videos, illustrations) right now, based on current news and cultural shifts.
+    For each topic, provide a short description of why it's trending. Use Google Search to find the most up-to-date information.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                tools: [{googleSearch: {}}],
+                responseMimeType: 'application/json',
+                responseSchema: hotTopicsResponseSchema,
+                temperature: 0.7,
+            },
+        });
+
+        const data = JSON.parse(response.text.trim());
+        if (!Array.isArray(data)) {
+            throw new Error("Invalid response structure from AI for hot topics.");
+        }
+        return data as HotTopic[];
+    } catch (error) {
+        console.error("Error getting hot topics:", error);
+        throw new Error("Failed to fetch global hot topics. The AI may be busy.");
+    }
+};
+
+export const generateKeywordStrategy = async (topic: string): Promise<KeywordStrategy> => {
+    const prompt = `You are an SEO expert specializing in stock content. For the topic "${topic}", generate a comprehensive keyword strategy. Provide:
+    1.  A list of 5-7 primary keywords.
+    2.  A list of 5-7 long-tail keywords.
+    3.  A list of 5-7 related concepts or LSI keywords.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: keywordStrategyResponseSchema,
+                temperature: 0.5,
+            },
+        });
+
+        const data = JSON.parse(response.text.trim());
+        if (!data.primaryKeywords || !data.longTailKeywords || !data.relatedConcepts) {
+            throw new Error("Invalid response structure from AI for keyword strategy.");
+        }
+        return data as KeywordStrategy;
+    } catch (error) {
+        console.error("Error generating keyword strategy:", error);
+        throw new Error("Failed to generate keyword strategy. Please try another topic.");
+    }
 };
 
 export const generateInspirationalImage = async (prompt: string, contentType: string): Promise<string> => {

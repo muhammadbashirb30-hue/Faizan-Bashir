@@ -45,3 +45,14 @@ export interface GroundingSource {
   uri: string;
   title: string;
 }
+
+export interface HotTopic {
+  topic: string;
+  reason: string;
+}
+
+export interface KeywordStrategy {
+  primaryKeywords: string[];
+  longTailKeywords: string[];
+  relatedConcepts: string[];
+}

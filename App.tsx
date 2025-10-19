@@ -3,12 +3,13 @@ import FilterBar from './components/FilterBar';
 import EventGrid from './components/EventGrid';
 import TrendExplorer from './components/TrendExplorer';
 import InspirationGallery from './components/InspirationGallery';
+import MarketPulse from './components/MarketPulse';
 import { findEvents, generateInspirationGallery } from './services/geminiService';
 import type { Event, ContentType, GroundingSource } from './types';
 import { CONTENT_TYPES, COUNTRIES, MONTHS } from './constants';
-import { SparklesIcon, ChartBarIcon } from './components/icons';
+import { SparklesIcon, ChartBarIcon, GlobeAltIcon } from './components/icons';
 
-type View = 'events' | 'trends';
+type View = 'events' | 'trends' | 'market';
 
 const App: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -103,6 +104,7 @@ const App: React.FC = () => {
         <div className="flex justify-center mb-8 gap-4">
            <TabButton view="events" label="Event Finder" icon={<SparklesIcon className="w-5 h-5"/>} />
            <TabButton view="trends" label="Trend Explorer" icon={<ChartBarIcon className="w-5 h-5" />} />
+           <TabButton view="market" label="Market Pulse" icon={<GlobeAltIcon className="w-5 h-5" />} />
         </div>
 
         {error && (
@@ -137,6 +139,10 @@ const App: React.FC = () => {
 
             {currentView === 'trends' && (
                 <TrendExplorer />
+            )}
+
+            {currentView === 'market' && (
+                <MarketPulse />
             )}
         </div>
         
