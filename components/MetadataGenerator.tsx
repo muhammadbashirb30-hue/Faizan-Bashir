@@ -1,0 +1,169 @@
+import React, { useState, useCallback } from 'react';
+import type { StockMetadata, ContentType } from '../types';
+import { CONTENT_TYPES } from '../constants';
+import { generateStockMetadata } from '../services/geminiService';
+import Spinner from './Spinner';
+import { TagIcon, CopyIcon } from './icons';
+
+const MetadataCard: React.FC<{ result: StockMetadata }> = ({ result }) => {
+    const [titleCopied, setTitleCopied] = useState(false);
+    const [keywordsCopied, setKeywordsCopied] = useState(false);
+
+    const handleCopy = (text: string, type: 'title' | 'keywords') => {
+        navigator.clipboard.writeText(text);
+        if (type === 'title') {
+            setTitleCopied(true);
+            setTimeout(() => setTitleCopied(false), 2000);
+        } else {
+            setKeywordsCopied(true);
+            setTimeout(() => setKeywordsCopied(false), 2000);
+        }
+    };
+
+    return (
+        <div className="bg-slate-900/50 p-5 rounded-lg border border-slate-800/50">
+            <h3 className="font-bold text-cyan-300 text-xl mb-4">{result.platform}</h3>
+            <div className="space-y-4">
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold text-slate-200 text-sm">Generated Title</h4>
+                        <button onClick={() => handleCopy(result.title, 'title')} className="text-xs text-cyan-400 hover:text-cyan-200 font-medium flex items-center transition-colors">
+                           <CopyIcon className="w-3 h-3 mr-1" />
+                           {titleCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+                    <p className="text-base text-slate-300 bg-slate-800/50 p-3 rounded-md">{result.title}</p>
+                </div>
+                <div>
+                     <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold text-slate-200 text-sm">Keywords ({result.keywords.length})</h4>
+                        <button onClick={() => handleCopy(result.keywords.join(', '), 'keywords')} className="text-xs text-cyan-400 hover:text-cyan-200 font-medium flex items-center transition-colors">
+                           <CopyIcon className="w-3 h-3 mr-1" />
+                           {keywordsCopied ? 'Copied!' : 'Copy All'}
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-3 rounded-md bg-slate-800/50 max-h-48 overflow-y-auto">
+                        {result.keywords.map(kw => (
+                             <span key={kw} className="text-sm bg-slate-700/50 text-slate-300 px-3 py-1 rounded-full">{kw}</span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+};
+
+
+const MetadataGenerator: React.FC = () => {
+  const [topic, setTopic] = useState('');
+  const [contentType, setContentType] = useState<ContentType>(CONTENT_TYPES[0]);
+  const [metadata, setMetadata] = useState<StockMetadata[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topic) {
+        setError('Please enter a topic to generate metadata.');
+        return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setMetadata(null);
+    setHasSearched(true);
+    try {
+      const result = await generateStockMetadata(topic, contentType);
+      setMetadata(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [topic, contentType]);
+
+  return (
+    <div className="glassmorphism p-4 sm:p-6 rounded-xl">
+       <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+        <div className="lg:col-span-1">
+          <label htmlFor="metadata-topic" className="block text-sm font-medium text-gray-400 mb-1">Content Topic / Description</label>
+          <input
+            type="text"
+            id="metadata-topic"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g., 'Smiling family having a picnic'"
+            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+          />
+        </div>
+        <div>
+          <label htmlFor="metadata-content-type" className="block text-sm font-medium text-gray-400 mb-1">Content Type</label>
+          <select
+            id="metadata-content-type"
+            value={contentType}
+            onChange={(e) => setContentType(e.target.value as ContentType)}
+            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+          >
+            {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-cyan-500 text-slate-900 font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-400 disabled:bg-cyan-500/30 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_20px_rgba(0,246,255,0.5)]"
+        >
+          {isLoading ? (
+            <>
+              <Spinner size="sm" />
+              <span className="ml-2">Generating...</span>
+            </>
+          ) : (
+             <>
+              <TagIcon className="w-5 h-5 mr-2" />
+              <span>Generate Metadata</span>
+             </>
+          )}
+        </button>
+      </form>
+
+      {error && <p className="mt-4 text-sm text-red-400 text-center">{error}</p>}
+      
+      <div className="mt-8">
+        {isLoading && (
+            <div className="flex justify-center items-center py-10">
+                <div className="text-center">
+                    <Spinner size="lg" />
+                    <p className="mt-4 text-gray-400 font-medium animate-pulse">Generating titles & keywords...</p>
+                </div>
+            </div>
+        )}
+
+        {!isLoading && !metadata && !hasSearched && (
+            <div className="text-center py-10 rounded-lg bg-slate-900/20">
+                <TagIcon className="w-12 h-12 text-cyan-400 mx-auto" />
+                <h2 className="text-2xl font-bold text-slate-100 mt-4">Title & Keyword Generator</h2>
+                <p className="mt-2 text-slate-400 max-w-md mx-auto">Describe your content to get SEO-optimized titles and keywords for Adobe Stock, Shutterstock, and more.</p>
+            </div>
+        )}
+
+        {!isLoading && !metadata && hasSearched && (
+            <div className="text-center py-10">
+                <h2 className="text-xl font-bold text-gray-200">No Metadata Generated</h2>
+                <p className="mt-2 text-gray-400">The AI couldn't generate metadata for this topic. Please try being more descriptive.</p>
+            </div>
+        )}
+
+        {metadata && (
+            <div className="animate-slide-up-fade-in grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {metadata.map((result) => (
+                    <MetadataCard key={result.platform} result={result} />
+                ))}
+            </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MetadataGenerator;

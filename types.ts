@@ -56,3 +56,9 @@ export interface KeywordStrategy {
   longTailKeywords: string[];
   relatedConcepts: string[];
 }
+
+export interface StockMetadata {
+  platform: string;
+  title: string;
+  keywords: string[];
+}

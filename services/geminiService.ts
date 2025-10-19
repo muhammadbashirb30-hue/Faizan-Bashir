@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import type { AIContent, Event, GroundingSource, AITrendReport, HotTopic, KeywordStrategy } from '../types';
+import type { AIContent, Event, GroundingSource, AITrendReport, HotTopic, KeywordStrategy, StockMetadata } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -73,25 +73,6 @@ const trendReportResponseSchema = {
     required: ['ideas', 'audienceTip']
 };
 
-const hotTopicsResponseSchema = {
-    type: Type.ARRAY,
-    description: "A list of 5 globally trending topics for visual content.",
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        topic: {
-          type: Type.STRING,
-          description: "The name of the trending topic."
-        },
-        reason: {
-          type: Type.STRING,
-          description: "A brief, 1-2 sentence explanation of why this topic is currently trending."
-        }
-      },
-      required: ['topic', 'reason']
-    }
-};
-
 const keywordStrategyResponseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -114,9 +95,72 @@ const keywordStrategyResponseSchema = {
     required: ['primaryKeywords', 'longTailKeywords', 'relatedConcepts']
 };
 
+const stockMetadataResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        metadata: {
+            type: Type.ARRAY,
+            description: "An array of metadata objects for different stock platforms.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    platform: {
+                        type: Type.STRING,
+                        description: "The name of the stock content platform (e.g., 'Adobe Stock')."
+                    },
+                    title: {
+                        type: Type.STRING,
+                        description: "An SEO-optimized title for the content on this platform."
+                    },
+                    keywords: {
+                        type: Type.ARRAY,
+                        description: "A list of 30-50 relevant and high-traffic keywords, ordered by importance.",
+                        items: { type: Type.STRING }
+                    }
+                },
+                required: ['platform', 'title', 'keywords']
+            }
+        }
+    },
+    required: ['metadata']
+};
+
+export const generateStockMetadata = async (topic: string, contentType: string): Promise<StockMetadata[]> => {
+    const prompt = `You are a world-class SEO expert and metadata strategist for stock content platforms.
+    For the topic "${topic}" and content type "${contentType}", generate optimized metadata for the following platforms: Adobe Stock, Shutterstock, Freepik, and Vecteezy.
+    
+    For each platform:
+    1.  Provide one compelling, commercial, and SEO-friendly title.
+    2.  Provide a list of 30-50 highly relevant keywords, including primary, long-tail, and conceptual keywords.
+    3.  Order the keywords by importance, with the most critical ones first.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: stockMetadataResponseSchema,
+                temperature: 0.6,
+            },
+        });
+
+        const data = JSON.parse(response.text.trim());
+        if (!data.metadata || !Array.isArray(data.metadata)) {
+            throw new Error("Invalid response structure from AI for stock metadata.");
+        }
+        return data.metadata as StockMetadata[];
+    } catch (error) {
+        console.error("Error generating stock metadata:", error);
+        throw new Error("Failed to generate stock metadata. Please try another topic.");
+    }
+};
+
 export const getGlobalHotTopics = async (): Promise<HotTopic[]> => {
     const prompt = `As a stock content strategist, identify 5 globally trending topics for visual content (photos, videos, illustrations) right now, based on current news and cultural shifts.
-    For each topic, provide a short description of why it's trending. Use Google Search to find the most up-to-date information.`;
+    For each topic, provide a short description of why it's trending. Use Google Search to find the most up-to-date information.
+    
+    Return the response as a single JSON array inside a markdown code block. Each object in the array should have two keys: "topic" and "reason".`;
 
     try {
         const response = await ai.models.generateContent({
@@ -124,19 +168,34 @@ export const getGlobalHotTopics = async (): Promise<HotTopic[]> => {
             contents: prompt,
             config: {
                 tools: [{googleSearch: {}}],
-                responseMimeType: 'application/json',
-                responseSchema: hotTopicsResponseSchema,
                 temperature: 0.7,
             },
         });
 
-        const data = JSON.parse(response.text.trim());
+        const rawText = response.text.trim();
+        const jsonMatch = rawText.match(/```(json)?\n([\s\S]*?)\n```/);
+        
+        let data;
+        if (jsonMatch && jsonMatch[2]) {
+            data = JSON.parse(jsonMatch[2]);
+        } else {
+             try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                console.error("Failed to parse raw text as JSON for hot topics:", rawText);
+                throw new Error("The AI's response for hot topics was not in the expected JSON format.");
+            }
+        }
+
         if (!Array.isArray(data)) {
             throw new Error("Invalid response structure from AI for hot topics.");
         }
         return data as HotTopic[];
     } catch (error) {
         console.error("Error getting hot topics:", error);
+        if (error instanceof Error && error.message.includes("JSON")) {
+            throw error;
+        }
         throw new Error("Failed to fetch global hot topics. The AI may be busy.");
     }
 };

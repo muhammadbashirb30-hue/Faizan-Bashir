@@ -4,12 +4,13 @@ import EventGrid from './components/EventGrid';
 import TrendExplorer from './components/TrendExplorer';
 import InspirationGallery from './components/InspirationGallery';
 import MarketPulse from './components/MarketPulse';
+import MetadataGenerator from './components/MetadataGenerator';
 import { findEvents, generateInspirationGallery } from './services/geminiService';
 import type { Event, ContentType, GroundingSource } from './types';
 import { CONTENT_TYPES, COUNTRIES, MONTHS } from './constants';
-import { SparklesIcon, ChartBarIcon, GlobeAltIcon } from './components/icons';
+import { SparklesIcon, ChartBarIcon, GlobeAltIcon, TagIcon } from './components/icons';
 
-type View = 'events' | 'trends' | 'market';
+type View = 'events' | 'trends' | 'market' | 'metadata';
 
 const App: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -78,7 +79,7 @@ const App: React.FC = () => {
   const TabButton: React.FC<{view: View, label: string, icon: React.ReactNode}> = ({ view, label, icon }) => (
     <button
       onClick={() => setCurrentView(view)}
-      className={`flex items-center justify-center gap-2 px-5 py-2.5 text-sm sm:text-base font-semibold rounded-lg transition-all duration-300 transform border ${
+      className={`flex items-center justify-center gap-2 px-4 py-2 text-sm sm:text-base font-semibold rounded-lg transition-all duration-300 transform border ${
         currentView === view
           ? 'bg-cyan-400/10 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(0,246,255,0.4)] scale-105'
           : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/70 hover:border-slate-500 hover:scale-105'
@@ -101,10 +102,11 @@ const App: React.FC = () => {
           </p>
         </header>
 
-        <div className="flex justify-center mb-8 gap-4">
+        <div className="flex justify-center mb-8 gap-2 sm:gap-4 flex-wrap">
            <TabButton view="events" label="Event Finder" icon={<SparklesIcon className="w-5 h-5"/>} />
            <TabButton view="trends" label="Trend Explorer" icon={<ChartBarIcon className="w-5 h-5" />} />
            <TabButton view="market" label="Market Pulse" icon={<GlobeAltIcon className="w-5 h-5" />} />
+           <TabButton view="metadata" label="Title & Keywords" icon={<TagIcon className="w-5 h-5" />} />
         </div>
 
         {error && (
@@ -143,6 +145,10 @@ const App: React.FC = () => {
 
             {currentView === 'market' && (
                 <MarketPulse />
+            )}
+
+            {currentView === 'metadata' && (
+                <MetadataGenerator />
             )}
         </div>
         
