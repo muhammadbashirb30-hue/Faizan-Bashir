@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import type { StockMetadata, ContentType } from '../types';
 import { CONTENT_TYPES } from '../constants';
 import { generateStockMetadata } from '../services/geminiService';
 import Spinner from './Spinner';
-import { TagIcon, CopyIcon } from './icons';
+import { TagIcon, CopyIcon, ArrowUpTrayIcon, XCircleIcon } from './icons';
 
 const MetadataCard: React.FC<{ result: StockMetadata }> = ({ result }) => {
     const [titleCopied, setTitleCopied] = useState(false);
@@ -62,10 +62,49 @@ const MetadataGenerator: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); 
+        };
+        reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        setImageFile(file);
+        try {
+            const base64 = await fileToBase64(file);
+            setImageBase64(base64);
+        } catch (error) {
+            setError("Failed to read the image file.");
+            setImageFile(null);
+            setImageBase64(null);
+        }
+    }
+  };
+
+  const handleRemoveImage = () => {
+      setImageFile(null);
+      setImageBase64(null);
+      if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+      }
+  };
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic) {
-        setError('Please enter a topic to generate metadata.');
+    if (!topic && !imageFile) {
+        setError('Please enter a topic or upload an image to generate metadata.');
         return;
     }
 
@@ -74,57 +113,103 @@ const MetadataGenerator: React.FC = () => {
     setMetadata(null);
     setHasSearched(true);
     try {
-      const result = await generateStockMetadata(topic, contentType);
+      const imageData = imageBase64 && imageFile ? { data: imageBase64, mimeType: imageFile.type } : undefined;
+      const result = await generateStockMetadata(topic, contentType, imageData);
       setMetadata(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
-  }, [topic, contentType]);
+  }, [topic, contentType, imageFile, imageBase64]);
 
   return (
     <div className="glassmorphism p-4 sm:p-6 rounded-xl">
-       <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-        <div className="lg:col-span-1">
-          <label htmlFor="metadata-topic" className="block text-sm font-medium text-gray-400 mb-1">Content Topic / Description</label>
-          <input
-            type="text"
-            id="metadata-topic"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g., 'Smiling family having a picnic'"
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
-          />
+       <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="metadata-topic" className="block text-sm font-medium text-gray-400 mb-1">Content Topic / Description</label>
+              <input
+                type="text"
+                id="metadata-topic"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g., 'Smiling family having a picnic'"
+                className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+              />
+              <p className="text-xs text-slate-500 mt-1">Optional if uploading an image, but can help guide the AI.</p>
+            </div>
+            <div>
+              <label htmlFor="metadata-content-type" className="block text-sm font-medium text-gray-400 mb-1">Content Type</label>
+              <select
+                id="metadata-content-type"
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value as ContentType)}
+                className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+              >
+                {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Upload Image (Optional)</label>
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageChange} 
+                accept="image/jpeg,image/png,image/webp" 
+                className="hidden" 
+              />
+            {imageBase64 && imageFile ? (
+              <div className="relative group">
+                <img 
+                  src={`data:${imageFile.type};base64,${imageBase64}`} 
+                  alt="Image preview"
+                  className="rounded-lg w-full h-auto object-cover"
+                />
+                <button 
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 opacity-50 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove image"
+                >
+                  <XCircleIcon className="w-6 h-6" />
+                </button>
+              </div>
+            ) : (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-48 border-2 border-dashed border-slate-700 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:bg-slate-800/50 hover:border-cyan-500 cursor-pointer transition-colors"
+              >
+                <ArrowUpTrayIcon className="w-8 h-8 mb-2 text-slate-500" />
+                <span>Click to upload or drag & drop</span>
+                <span className="text-xs text-slate-500 mt-1">PNG, JPG, WEBP</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          <label htmlFor="metadata-content-type" className="block text-sm font-medium text-gray-400 mb-1">Content Type</label>
-          <select
-            id="metadata-content-type"
-            value={contentType}
-            onChange={(e) => setContentType(e.target.value as ContentType)}
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
-          >
-            {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+
+        <div className="mt-8 border-t border-slate-700/50 pt-6">
+            <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-cyan-500 text-slate-900 font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-400 disabled:bg-cyan-500/30 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_20px_rgba(0,246,255,0.5)]"
+            >
+            {isLoading ? (
+                <>
+                <Spinner size="sm" />
+                <span className="ml-2">Generating...</span>
+                </>
+            ) : (
+                <>
+                <TagIcon className="w-5 h-5 mr-2" />
+                <span>Generate Metadata</span>
+                </>
+            )}
+            </button>
         </div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full bg-cyan-500 text-slate-900 font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-400 disabled:bg-cyan-500/30 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_20px_rgba(0,246,255,0.5)]"
-        >
-          {isLoading ? (
-            <>
-              <Spinner size="sm" />
-              <span className="ml-2">Generating...</span>
-            </>
-          ) : (
-             <>
-              <TagIcon className="w-5 h-5 mr-2" />
-              <span>Generate Metadata</span>
-             </>
-          )}
-        </button>
       </form>
 
       {error && <p className="mt-4 text-sm text-red-400 text-center">{error}</p>}
@@ -134,7 +219,7 @@ const MetadataGenerator: React.FC = () => {
             <div className="flex justify-center items-center py-10">
                 <div className="text-center">
                     <Spinner size="lg" />
-                    <p className="mt-4 text-gray-400 font-medium animate-pulse">Generating titles & keywords...</p>
+                    <p className="mt-4 text-gray-400 font-medium animate-pulse">Analyzing and generating metadata...</p>
                 </div>
             </div>
         )}
@@ -143,14 +228,14 @@ const MetadataGenerator: React.FC = () => {
             <div className="text-center py-10 rounded-lg bg-slate-900/20">
                 <TagIcon className="w-12 h-12 text-cyan-400 mx-auto" />
                 <h2 className="text-2xl font-bold text-slate-100 mt-4">Title & Keyword Generator</h2>
-                <p className="mt-2 text-slate-400 max-w-md mx-auto">Describe your content to get SEO-optimized titles and keywords for Adobe Stock, Shutterstock, and more.</p>
+                <p className="mt-2 text-slate-400 max-w-lg mx-auto">Describe your content or upload an image to get SEO-optimized titles and keywords for Adobe Stock, Shutterstock, and more.</p>
             </div>
         )}
 
         {!isLoading && !metadata && hasSearched && (
             <div className="text-center py-10">
                 <h2 className="text-xl font-bold text-gray-200">No Metadata Generated</h2>
-                <p className="mt-2 text-gray-400">The AI couldn't generate metadata for this topic. Please try being more descriptive.</p>
+                <p className="mt-2 text-gray-400">The AI couldn't generate metadata. Please try being more descriptive or use a different image.</p>
             </div>
         )}
 

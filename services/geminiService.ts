@@ -125,19 +125,41 @@ const stockMetadataResponseSchema = {
     required: ['metadata']
 };
 
-export const generateStockMetadata = async (topic: string, contentType: string): Promise<StockMetadata[]> => {
-    const prompt = `You are a world-class SEO expert and metadata strategist for stock content platforms.
-    For the topic "${topic}" and content type "${contentType}", generate optimized metadata for the following platforms: Adobe Stock, Shutterstock, Freepik, and Vecteezy.
+export const generateStockMetadata = async (
+    topic: string,
+    contentType: string,
+    image?: { data: string; mimeType: string }
+): Promise<StockMetadata[]> => {
+    
+    let promptText: string;
+    const requestContents: { parts: any[] } = { parts: [] };
+
+    const commonInstructions = `
+    Generate optimized metadata for the following platforms: Adobe Stock, Shutterstock, Freepik, and Vecteezy.
     
     For each platform:
     1.  Provide one compelling, commercial, and SEO-friendly title.
     2.  Provide a list of 30-50 highly relevant keywords, including primary, long-tail, and conceptual keywords.
     3.  Order the keywords by importance, with the most critical ones first.`;
+    
+    if (image) {
+        promptText = `You are a world-class SEO expert and metadata strategist for stock content platforms. Analyze the provided image, which is a "${contentType}".`;
+        if (topic) {
+            promptText += ` Use the following user-provided description as an additional hint: "${topic}".`;
+        }
+        promptText += commonInstructions;
+        requestContents.parts.push({ text: promptText });
+        requestContents.parts.push({ inlineData: { data: image.data, mimeType: image.mimeType } });
+    } else {
+        promptText = `You are a world-class SEO expert and metadata strategist for stock content platforms. For the topic "${topic}" and content type "${contentType}", generate optimized metadata.`;
+        promptText += commonInstructions;
+        requestContents.parts.push({ text: promptText });
+    }
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: prompt,
+            contents: requestContents,
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: stockMetadataResponseSchema,
@@ -152,7 +174,7 @@ export const generateStockMetadata = async (topic: string, contentType: string):
         return data.metadata as StockMetadata[];
     } catch (error) {
         console.error("Error generating stock metadata:", error);
-        throw new Error("Failed to generate stock metadata. Please try another topic.");
+        throw new Error("Failed to generate stock metadata. Please try another topic or image.");
     }
 };
 
@@ -339,7 +361,7 @@ export const generateContentIdeas = async (eventName: string, contentType: strin
 export const findEvents = async (countryName: string, monthName: string, countryCode: string, year: number): Promise<{ events: Event[], sources: GroundingSource[] }> => {
     const prompt = `You are a helpful assistant for stock content creators. Find a list of major public holidays and notable cultural or seasonal events for ${countryName} occurring in ${monthName} ${year}. 
     
-    Return the response as a single JSON object inside a markdown code block. The JSON object must have a single key "events", which is an array of event objects.
+    Return the response as a single JSON object inside a markdown code block. The JSON object must have a single key "events", which is an an array of event objects.
     
     For each event object, provide its name, a brief description, and the exact date in "YYYY-MM-DD" format. 
     
