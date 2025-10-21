@@ -45,11 +45,7 @@ export const MONTHS = [
 ];
 
 const currentYear = new Date().getFullYear();
-export const YEARS = [
-    currentYear,
-    currentYear + 1,
-    currentYear + 2,
-];
+export const YEARS = Array.from({ length: 6 }, (_, i) => currentYear + i);
 
 
 export const CONTENT_TYPES: ContentType[] = Object.values(ContentType);

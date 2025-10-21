@@ -12,23 +12,22 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0a192f; /* Fallback */
-        background-image: radial-gradient(ellipse at top, #1b2735 0%, #090a0f 100%);
-        color: #e6f1ff;
+        background-color: #f8f9fa;
+        color: #343a40;
       }
       .gradient-text {
-        background: linear-gradient(90deg, #00f6ff, #ff00ff, #6272a4);
+        background: linear-gradient(90deg, #0d6efd, #6f42c1, #d63384);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-size: 200% 200%;
         animation: gradient-animation 5s ease infinite;
       }
       .glassmorphism {
-        background: rgba(10, 25, 47, 0.6); /* Dark Glass */
+        background: rgba(255, 255, 255, 0.6);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(0, 246, 255, 0.2);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
       }
       @keyframes gradient-animation {
         0% { background-position: 0% 50%; }
@@ -43,22 +42,31 @@
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
       }
+       @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+      }
+      .skeleton-shimmer {
+        animation: shimmer 2s infinite linear;
+        background: linear-gradient(to right, #e9ecef 4%, #f8f9fa 25%, #e9ecef 36%);
+        background-size: 1000px 100%;
+      }
       .animate-fade-in {
         animation: fade-in 0.5s ease-out forwards;
       }
       .animate-slide-up-fade-in {
         animation: slide-up-fade-in 0.6s ease-out forwards;
       }
-      .dark-input {
-        background-color: rgba(10, 25, 47, 0.8);
-        border: 1px solid rgba(0, 246, 255, 0.2);
-        color: #e6f1ff;
+      .light-input {
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        color: #212529;
         transition: all 0.3s ease;
       }
-      .dark-input:focus {
+      .light-input:focus {
           outline: none;
-          border-color: rgba(0, 246, 255, 0.8);
-          box-shadow: 0 0 10px rgba(0, 246, 255, 0.3);
+          border-color: #86b7fe;
+          box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
       }
     </style>
   <script type="importmap">

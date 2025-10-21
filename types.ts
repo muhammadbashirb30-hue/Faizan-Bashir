@@ -17,9 +17,17 @@ export interface ContentIdea {
   keywords: string[];
 }
 
+export interface SellingConcept {
+  concept: string;
+  description: string;
+  targetAudience: string;
+  keywords: string[];
+}
+
 export interface AIContent {
   ideas: ContentIdea[];
   uploadTip: string;
+  topSellingConcepts: SellingConcept[];
 }
 
 export interface TrendingIdea {

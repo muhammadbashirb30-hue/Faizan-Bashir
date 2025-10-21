@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import type { AIContent, Event, GroundingSource, AITrendReport, HotTopic, KeywordStrategy, StockMetadata } from '../types';
+import type { AIContent, Event, GroundingSource, AITrendReport, HotTopic, KeywordStrategy, StockMetadata, SellingConcept } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -34,9 +34,36 @@ const contentIdeaResponseSchema = {
     uploadTip: {
       type: Type.STRING,
       description: 'A concise tip on when to upload this content for maximum visibility, e.g., "Upload 4-6 weeks before the event."'
+    },
+    topSellingConcepts: {
+        type: Type.ARRAY,
+        description: 'A list of 3-4 specific, commercially viable visual concepts that are known to sell well for this type of event.',
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                concept: {
+                    type: Type.STRING,
+                    description: 'A short, catchy name for the selling concept.'
+                },
+                description: {
+                    type: Type.STRING,
+                    description: 'A detailed description of the visual concept, including subject matter, style, and composition that makes it commercially successful.'
+                },
+                targetAudience: {
+                    type: Type.STRING,
+                    description: 'The primary customer segment this concept appeals to (e.g., "Small businesses", "Families with young children").'
+                },
+                keywords: {
+                    type: Type.ARRAY,
+                    description: 'A list of 5-7 highly commercial keywords specific to this concept.',
+                    items: { type: Type.STRING }
+                }
+            },
+            required: ['concept', 'description', 'targetAudience', 'keywords']
+        }
     }
   },
-  required: ['ideas', 'uploadTip']
+  required: ['ideas', 'uploadTip', 'topSellingConcepts']
 };
 
 const trendReportResponseSchema = {
@@ -327,10 +354,11 @@ export const generateTrendingIdeas = async (theme: string, contentType: string):
 
 
 export const generateContentIdeas = async (eventName: string, contentType: string): Promise<AIContent> => {
-  const prompt = `You are an expert creative director for stock content platforms like Adobe Stock and Shutterstock.
-  For the event "${eventName}" and content type "${contentType}", generate 5 creative content ideas.
-  For each idea, provide a brief description, a list of relevant keywords (5-10), and a suggested SEO-friendly title.
-  Also provide a general "Upload Tip" for this type of event.`;
+  const prompt = `You are an expert creative director and market analyst for stock content platforms like Adobe Stock and Shutterstock.
+  For the event "${eventName}" and content type "${contentType}":
+  1. Generate 5 creative and unique content ideas. For each idea, provide a brief description, a list of 5-10 relevant keywords, and a suggested SEO-friendly title.
+  2. Provide a general "Upload Tip" for this type of event (e.g., when to upload for maximum visibility).
+  3. Provide a list of 3-4 "Top-Selling Concepts". For each concept, provide: a short title ('concept'), a detailed 'description' of the visual elements that make it sell, the 'targetAudience', and 5-7 commercial 'keywords'. These should be specific, commercially viable themes that consistently sell well for this event.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -346,7 +374,7 @@ export const generateContentIdeas = async (eventName: string, contentType: strin
     const jsonText = response.text.trim();
     const data = JSON.parse(jsonText);
     
-    if (!data.ideas || !data.uploadTip) {
+    if (!data.ideas || !data.uploadTip || !data.topSellingConcepts) {
         throw new Error("Invalid response structure from AI.");
     }
 

@@ -79,10 +79,10 @@ const App: React.FC = () => {
   const TabButton: React.FC<{view: View, label: string, icon: React.ReactNode}> = ({ view, label, icon }) => (
     <button
       onClick={() => setCurrentView(view)}
-      className={`flex items-center justify-center gap-2 px-4 py-2 text-sm sm:text-base font-semibold rounded-lg transition-all duration-300 transform border ${
+      className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm sm:text-base font-semibold rounded-lg transition-all duration-300 transform border ${
         currentView === view
-          ? 'bg-cyan-400/10 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(0,246,255,0.4)] scale-105'
-          : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/70 hover:border-slate-500 hover:scale-105'
+          ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 hover:scale-105'
       }`}
     >
       {icon}
@@ -91,18 +91,18 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen text-gray-300">
+    <div className="min-h-screen">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="text-center mb-10">
-           <h1 className="text-4xl sm:text-6xl font-black tracking-tight gradient-text">
+        <header className="text-center mb-12">
+           <h1 className="text-5xl sm:text-7xl font-black tracking-tighter gradient-text">
               AI Content Engine
            </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-400">
+          <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600">
             From local events to global trends, discover your next bestselling idea and visualize it instantly with AI.
           </p>
         </header>
 
-        <div className="flex justify-center mb-8 gap-2 sm:gap-4 flex-wrap">
+        <div className="flex justify-center mb-10 gap-2 sm:gap-4 flex-wrap">
            <TabButton view="events" label="Event Finder" icon={<SparklesIcon className="w-5 h-5"/>} />
            <TabButton view="trends" label="Trend Explorer" icon={<ChartBarIcon className="w-5 h-5" />} />
            <TabButton view="market" label="Market Pulse" icon={<GlobeAltIcon className="w-5 h-5" />} />
@@ -110,7 +110,7 @@ const App: React.FC = () => {
         </div>
 
         {error && (
-            <div className="bg-red-900/50 border border-red-500/50 text-red-200 p-4 mb-8 rounded-md animate-fade-in" role="alert">
+            <div className="bg-red-100 border border-red-400 text-red-700 p-4 mb-8 rounded-md animate-fade-in" role="alert">
                 <p className="font-bold">An Error Occurred</p>
                 <p>{error}</p>
             </div>
@@ -152,7 +152,7 @@ const App: React.FC = () => {
             )}
         </div>
         
-        <footer className="text-center mt-16 text-gray-500 text-sm">
+        <footer className="text-center mt-20 text-gray-500 text-sm">
             <p>&copy; {new Date().getFullYear()} AI Content Engine. Powered by Generative AI.</p>
         </footer>
       </main>

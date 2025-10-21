@@ -24,12 +24,12 @@ const FilterBar: React.FC<FilterBarProps> = ({ onSearch, isLoading }) => {
     <div className="glassmorphism p-4 sm:p-6 rounded-xl mb-8">
       <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
         <div>
-          <label htmlFor="country" className="block text-sm font-medium text-gray-400 mb-1">Country</label>
+          <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Country</label>
           <select
             id="country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+            className="w-full px-3 py-2 rounded-md shadow-sm light-input"
           >
             {COUNTRIES.map(c => (
               <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
@@ -37,12 +37,12 @@ const FilterBar: React.FC<FilterBarProps> = ({ onSearch, isLoading }) => {
           </select>
         </div>
         <div>
-          <label htmlFor="month" className="block text-sm font-medium text-gray-400 mb-1">Month</label>
+          <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">Month</label>
           <select
             id="month"
             value={month}
             onChange={(e) => setMonth(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+            className="w-full px-3 py-2 rounded-md shadow-sm light-input"
           >
             {MONTHS.map(m => (
               <option key={m.value} value={m.value}>{m.name}</option>
@@ -50,25 +50,30 @@ const FilterBar: React.FC<FilterBarProps> = ({ onSearch, isLoading }) => {
           </select>
         </div>
         <div>
-          <label htmlFor="year" className="block text-sm font-medium text-gray-400 mb-1">Year</label>
-          <select
+          <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+          <input
+            type="number"
             id="year"
+            list="year-options"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
-          >
+            className="w-full px-3 py-2 rounded-md shadow-sm light-input"
+            placeholder={`e.g., ${currentYear + 1}`}
+            min={currentYear}
+          />
+          <datalist id="year-options">
             {YEARS.map(y => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y} />
             ))}
-          </select>
+          </datalist>
         </div>
         <div>
-          <label htmlFor="type" className="block text-sm font-medium text-gray-400 mb-1">Content Type</label>
+          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
           <select
             id="type"
             value={type}
             onChange={(e) => setType(e.target.value as ContentType)}
-            className="w-full px-3 py-2 rounded-md shadow-sm dark-input"
+            className="w-full px-3 py-2 rounded-md shadow-sm light-input"
           >
             {CONTENT_TYPES.map(t => (
               <option key={t} value={t}>{t}</option>
@@ -78,7 +83,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onSearch, isLoading }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-cyan-500 text-slate-900 font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-400 disabled:bg-cyan-500/30 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_20px_rgba(0,246,255,0.5)]"
+          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform hover:scale-105 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30"
         >
           {isLoading ? 'Searching...' : 'Find Events'}
         </button>
